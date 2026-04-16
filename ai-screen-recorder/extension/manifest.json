@@ -1,0 +1,14 @@
+{
+    "manifest_version": 3,
+    "name": "AI Screen Recorder",
+    "version": "1.0",
+    "description": "Record screen and analyze with AI",
+    "permissions":["tabCapture", "activeTab"],
+    "background": {
+        "service_worker": "background.js"
+    },
+    "host_permissions": ["http://localhost:5000/"],
+    "action":{
+        "default_popup": "popup.html"
+    }
+}
