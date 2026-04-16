@@ -310,7 +310,28 @@ function showDetails(id) {
             <h3> Suggestions</h3>
             <ul>${(item.suggestions || []).map(s => `<li>${s}</li>`).join("")}</ul>
         </div>
+
+        <div class="card">
+            <h3> Timeline</h3>
+            <div class="timeline">
+                ${(item.steps || []).map((step, index) => `
+                    <div class="timeline-item">
+                        <span class="time">Step ${index + 1}</span>
+                        <p>${step}</p>
+                    </div>
+                `).join("")}
+            </div>
+        </div>
     `;
+
+    const steps = item.steps || [];
+
+    const timelineHTML = steps.map((step, index) => `
+        <div class="timeline-item">
+            <span class="time">Step ${index + 1}</span>
+            <p>${step}</p>
+        </div>
+    `).join("");
 }
 
 function loadHistory() {
