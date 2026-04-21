@@ -155,3 +155,11 @@ button {
   color: #666;
   font-weight: bold;
 }
+
+canvas {
+  max-width: 100%;
+}
+
+#appChart {
+  height: 200px !important;
+}

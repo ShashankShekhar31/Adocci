@@ -25,13 +25,21 @@
         <video id="preview" controls style="width:100%; display:none;"></video>
     </div>
 
-    <div class="card">
+    <!-- <div class="card">
         <h3> Timeline</h3>
         <div class="timeline">
             ${timelineHTML}
         </div>
-    </div>
+    </div> -->
 
+    <hr>
+    <h3> Analytics</h3>
+    <canvas id="appChart" style="width:100%; height:200px;"></canvas>
+    <div id="summary"></div>
+    <button id="loadAnalytics">Load Analytics</button>
+
+    <script src="chart.min.js"></script>
     <script src="popup.js"></script>
+    
 </body>
 </html>

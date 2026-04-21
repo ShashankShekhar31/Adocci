@@ -106,6 +106,7 @@
 let mediaRecorder;
 let recordedChunks = [];
 let historyCache = [];
+let chartInstance = null;
 
 const startBtn = document.getElementById("start");
 const stopBtn = document.getElementById("stop");
@@ -365,3 +366,75 @@ document.getElementById("historyBtn").onclick = async () => {
         status.innerText = "Status: Error";
     }
 };
+
+document.getElementById("loadAnalytics").addEventListener("click", loadAnalytics);
+
+async function loadAnalytics() {
+  try {
+    const res = await fetch("http://localhost:5000/analytics");
+    const data = await res.json();
+
+    const summaryDiv = document.getElementById("summary");
+
+    summaryDiv.innerHTML = `
+        <p>Total Sessions: ${data.totalSessions}</p>
+        <p>Avg Issues: ${data.avgIssuesPerSession}</p>
+        <p>Productivity Score: ${data.avgProductivity}</p>
+        <p>Level: ${data.productivityLevel}</p>
+    `;
+
+    let color = "red";
+
+    if (data.avgProductivity >= 75) color = "green";
+    else if (data.avgProductivity >= 40) color = "orange";
+
+    summaryDiv.innerHTML += `
+    <p style="color:${color}; font-weight:bold;">
+        ${data.productivityLevel}
+    </p>
+    `;
+
+    if (!data.topApps || data.topApps.length === 0) {
+      summaryDiv.innerHTML += `<p>No analytics data available yet.</p>`;
+      return; 
+    }
+
+    renderChart(data.topApps);
+
+  } catch (err) {
+    console.error("Analytics error:", err);
+  }
+}
+
+function renderChart(topApps) {
+    if (!topApps || topApps.length === 0) return;
+
+    const ctx = document.getElementById("appChart");
+
+    if (chartInstance) {
+        chartInstance.destroy();
+    }
+
+    const labels = topApps.map(a => a[0]);
+    const values = topApps.map(a => a[1]);
+
+    chartInstance = new Chart(ctx, {
+    type: "bar",
+    data: {
+        labels,
+        datasets: [{
+            label: "Top Apps Usage",
+            data: values
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    }
+});
+}
