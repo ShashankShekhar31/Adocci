@@ -107,6 +107,7 @@ let mediaRecorder;
 let recordedChunks = [];
 let historyCache = [];
 let chartInstance = null;
+let trendChartInstance = null;
 
 const startBtn = document.getElementById("start");
 const stopBtn = document.getElementById("stop");
@@ -143,6 +144,7 @@ startBtn.onclick = () => {
 
             mediaRecorder.start();
             status.innerText = "Status: Recording ";
+            status.style.color = "red";
 
             console.log("Tab recording started");
         }
@@ -202,6 +204,7 @@ stopBtn.onclick = () => {
                 }
 
                 status.innerText = "Status: Processing...";
+                status.style.color = "orange";
                 document.getElementById("result").innerText = "Analyzing screen...";
 
                 const data = await response.json();
@@ -216,10 +219,12 @@ stopBtn.onclick = () => {
                 stopBtn.disabled = true;
 
                 status.innerText ="Status: Completed ";
+                status.style.color = "green";
 
             } catch (err) {
-                // console.error("Error:", err);
                 status.innerText = "Status: Error ";
+                status.style.color = "red";
+                document.getElementById("loader").style.display = "none";
             }
         };
     };
@@ -327,12 +332,12 @@ function showDetails(id) {
 
     const steps = item.steps || [];
 
-    const timelineHTML = steps.map((step, index) => `
-        <div class="timeline-item">
-            <span class="time">Step ${index + 1}</span>
-            <p>${step}</p>
-        </div>
-    `).join("");
+    // const timelineHTML = steps.map((step, index) => `
+    //     <div class="timeline-item">
+    //         <span class="time">Step ${index + 1}</span>
+    //         <p>${step}</p>
+    //     </div>
+    // `).join("");
 }
 
 function loadHistory() {
@@ -343,6 +348,7 @@ document.getElementById("historyBtn").onclick = async () => {
     const container = document.getElementById("result");
 
     status.innerText = "Status: Loading history...";
+    status.style.color = "orange";
     container.innerHTML = " Loading history...";
     document.getElementById("loader").style.display = "block";
 
@@ -360,6 +366,7 @@ document.getElementById("historyBtn").onclick = async () => {
         displayHistory(data);
 
         status.innerText = "Status: History Loaded ";
+        status.style.color = "green";
     } catch (err) {
         console.error("History Error:", err);
         container.innerHTML = " Error loading history";
@@ -370,17 +377,46 @@ document.getElementById("historyBtn").onclick = async () => {
 document.getElementById("loadAnalytics").addEventListener("click", loadAnalytics);
 
 async function loadAnalytics() {
-  try {
-    const res = await fetch("http://localhost:5000/analytics");
-    const data = await res.json();
-
     const summaryDiv = document.getElementById("summary");
+    const analyticsBtn = document.getElementById("loadAnalytics");
 
-    summaryDiv.innerHTML = `
-        <p>Total Sessions: ${data.totalSessions}</p>
-        <p>Avg Issues: ${data.avgIssuesPerSession}</p>
-        <p>Productivity Score: ${data.avgProductivity}</p>
-        <p>Level: ${data.productivityLevel}</p>
+    analyticsBtn.disabled = true;
+
+    try {
+        const res = await fetch("http://localhost:5000/analytics");
+        const data = await res.json();
+
+        summaryDiv.innerHTML = `
+        <div class="card">
+            <h3>Overview</h3>
+            <p><b>Sessions:</b> ${data.totalSessions}</p>
+            <p><b>Avg Issues:</b> ${data.avgIssuesPerSession}</p>
+            <p><b>Score:</b> ${data.avgProductivity}</p>
+            <p><b>Level:</b> ${data.productivityLevel}</p>
+
+            <hr>
+
+            <h4>Insights</h4>
+            <p>Best: #${data.bestSession?.id} (${data.bestSession?.score})</p>
+            <p>Worst: #${data.worstSession?.id} (${data.worstSession?.score})</p>
+            <p>Trend: ${data.improvement}</p>
+        </div>
+    `;
+
+    let message = "";
+
+    if (data.improvement === "Improving") {
+        message = "You're getting better over time";
+    } else if (data.improvement === "Declining") {
+        message = "Performance is dropping. Review issues ";
+    } else {
+        message = "Performance is stable.";
+    }
+
+    summaryDiv.innerHTML += `<p><b>${message}</b></p>`;
+
+    summaryDiv.innerHTML += `
+    <p>Focus Area: Reduce issues in low-score sessions</p>
     `;
 
     let color = "red";
@@ -401,8 +437,13 @@ async function loadAnalytics() {
 
     renderChart(data.topApps);
 
+    renderTrendChart(data.productivityTrend);
+
+    analyticsBtn.disabled = false;
+
   } catch (err) {
-    console.error("Analytics error:", err);
+    summaryDiv.innerHTML = "<p style='color:red;'>Failed to load analytics</p>";
+    analyticsBtn.disabled = false;
   }
 }
 
@@ -438,3 +479,35 @@ function renderChart(topApps) {
     }
 });
 }
+
+function renderTrendChart(trendData) {
+    if (!trendData || trendData.length === 0) return;
+
+    const ctx = document.getElementById("trendChart");
+
+    if (trendChartInstance) {
+        trendChartInstance.destroy();
+    }
+
+    const labels = trendData.map(t => t.date);
+    const values = trendData.map(t => Number(t.avgScore));
+
+    trendChartInstance = new Chart(ctx, {
+        type: "line",
+        data: {
+            labels,
+            datasets: [{
+                label: "Productivity Score",
+                data: values
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
+}
+
+window.onload = () => {
+  loadAnalytics();
+};

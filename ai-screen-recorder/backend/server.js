@@ -10,13 +10,17 @@ const analyticsRoute = require("./routes/analytics");
 
 const pool = require("./db");
 
-pool.query("SELECT NOW()", (err, res) => {
-    if (err) {
-        console.error("DB Error:", err);
-    } else {
-        console.log("DB Connected ");
-    }
-});
+// await pool.query("SELECT NOW()", (err, res) => {
+//     if (err) {
+//         console.error("DB Error:", err);
+//     } else {
+//         console.log("DB Connected ");
+//     }
+// });
+
+pool.query("SELECT NOW()")
+  .then(() => console.log("DB Connected "))
+  .catch(err => console.error("DB Error:", err));
 
 const app=express();
 app.use(cors());
@@ -30,13 +34,13 @@ const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY
 });
 
-function filterFrames(files, folder) {
+async function filterFrames(files, folder) {
     let filtered = [];
     let lastHash = null;
 
-    files.forEach(file => {
+    for (const file of files) {
         const filePath = `${folder}/${file}`;
-        const buffer = fs.promises.readFile(filePath);
+        const buffer = await fs.promises.readFile(filePath);
 
         const hash = buffer.toString('base64').slice(0, 50);
 
@@ -44,7 +48,7 @@ function filterFrames(files, folder) {
             filtered.push(file);
             lastHash = hash;
         }
-    });
+    };
     return filtered;
 }
 
@@ -65,18 +69,18 @@ function extractFrames(videoPath, res) {
             '-vf', 'fps=1'
         ])
         .output(`${folder}/frame-%03d.png`)
-        .on('end', () => {
+        .on('end', async () => {
             console.log("Frames extracted");
 
             let files = fs.readdirSync(folder);
 
             files.sort();
 
-            files = filterFrames(files, folder);
+            files = await filterFrames(files, folder);
 
             files = files.sort(() => Math.random() - 0.5);
 
-            const MAX_FRAMES = 5;
+            const MAX_FRAMES = 8;
             files = files.slice(0, MAX_FRAMES);
 
             if (files.length === 0) {
@@ -101,13 +105,15 @@ function extractFrames(videoPath, res) {
             selectedFrames: files.length
             });
 
-            const images = Promise.all(
-                files.map(file => {
+            const images = await Promise.all(
+                files.map(async file => {
                     const imgPath = `${folder}/${file}`;
-                    const img = fs.promises.readFile(imgPath);
+                    const img = await fs.promises.readFile(imgPath);
                     return img.toString("base64");
                 })
             );
+
+            console.log("Images generated:", images.length);
 
             analyzeWithAI(images, res, videoPath, folder);
         })
@@ -121,7 +127,7 @@ function extractFrames(videoPath, res) {
     .run();
 }
 
-function analyzeWithAI(images, res, videoPath, folder) {
+async function analyzeWithAI(images, res, videoPath, folder) {
     try {
         const batches = chunkArray(images, 4);
 
@@ -132,7 +138,7 @@ function analyzeWithAI(images, res, videoPath, folder) {
 
         let finalResults = [];
         for (const batch of batches) {
-            const response = openai.chat.completions.create({
+            const response = await openai.chat.completions.create({
                 model: "gpt-4o-mini",
                 messages: [
                     {
@@ -141,6 +147,8 @@ function analyzeWithAI(images, res, videoPath, folder) {
                             {
                                 type: "text",
                                 text: `
+                                Analyze these screenshots and extract user activity.
+
                                 You MUST return ONLY valid JSON.
 
                                 DO NOT include any explanation.
@@ -150,12 +158,17 @@ function analyzeWithAI(images, res, videoPath, folder) {
                                 Return EXACTLY this format:
 
                                 {
-                                "task": "",
-                                "apps": [],
-                                "steps": [],
-                                "issues": [],
-                                "suggestions": []
+                                "task": "Short description of what user is doing",
+                                "apps": ["list of apps or websites"],
+                                "steps": ["step-by-step actions"],
+                                "issues": ["problems or errors"],
+                                "suggestions": ["improvements"]
                                 }
+                                
+                                Rules:
+                                - NEVER leave fields empty if something is visible
+                                - Infer reasonable steps if unclear
+                                - Be concise
                                 `
                             },
 
@@ -194,11 +207,11 @@ function analyzeWithAI(images, res, videoPath, folder) {
             }
         }
         const merged = {
-        task: [],
-        apps: [],
-        steps: [],
-        issues: [],
-        suggestions: []
+            task: [],
+            apps: [],
+            steps: [],
+            issues: [],
+            suggestions: []
         };
 
         finalResults.forEach(r => {
@@ -208,6 +221,8 @@ function analyzeWithAI(images, res, videoPath, folder) {
             if (r.issues) merged.issues.push(...r.issues);
             if (r.suggestions) merged.suggestions.push(...r.suggestions);
         });
+
+        if (merged.task.length === 0) merged.task = ["No task detected"];
 
         merged.task = [...new Set(merged.task)];
         merged.apps = [...new Set(merged.apps)];
@@ -219,7 +234,7 @@ function analyzeWithAI(images, res, videoPath, folder) {
         const finalScore = Math.max(0, Math.min(100, score));
 
         try {
-            pool.query(
+            await pool.query(
                 `INSERT INTO analyses (filename, task, apps, steps, issues, suggestions, productivity_score)
                  VALUES ($1, $2, $3, $4, $5, $6, $7)`,
                 [
@@ -247,8 +262,8 @@ function analyzeWithAI(images, res, videoPath, folder) {
             });
         }
         try {
-            fs.promises.unlink(videoPath);
-            fs.promises.rm(folder, { recursive: true, force: true });
+            await fs.promises.unlink(videoPath);
+            await fs.promises.rm(folder, { recursive: true, force: true });
         } catch (cleanupErr) {
             console.error("Cleanup error:", cleanupErr);
         }
@@ -266,7 +281,7 @@ app.get("/", (req,res)=>{
     res.send("Backend is running");
 });
 
-app.post("/analyze", (req,res)=>{
+app.post("/analyze", async (req,res)=>{
     const { video } =req.body;
 
     if(!video){
@@ -277,7 +292,7 @@ app.post("/analyze", (req,res)=>{
     const base64Data = video.replace(/^data:video\/\w+;base64,/, "");
     const videoPath = `video_${Date.now()}.webm`;
 
-    fs.promises.writeFile(videoPath, base64Data, "base64");
+    await fs.promises.writeFile(videoPath, base64Data, "base64");
 
     console.log("Video saved:", videoPath);
 
@@ -285,9 +300,9 @@ app.post("/analyze", (req,res)=>{
 
 });
 
-app.get("/history", (req, res) => {
+app.get("/history", async (req, res) => {
     try {
-        const result = pool.query(
+        const result = await pool.query(
             "SELECT * FROM analyses ORDER BY created_at DESC"
         );
 
@@ -299,7 +314,7 @@ app.get("/history", (req, res) => {
     }
 });
 
-const PORT=5000;
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, ()=>{
     console.log(`Server running on http://localhost:${PORT}`);
 });

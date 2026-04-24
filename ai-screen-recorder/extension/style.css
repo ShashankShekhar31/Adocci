@@ -1,27 +1,36 @@
 body {
-  font-family: Arial, sans-serif;
-  width: 260px;
-  padding: 12px;
+  font-family: "Segoe UI", Arial, sans-serif;
+  width: 360px;
   margin: 0;
-  background: #f4f6f8;
-}
-
-.container {
-  text-align: center;
-}
-
-h2 {
-  margin-bottom: 10px;
+  padding: 10px;
+  background: #f5f7fb;
   color: #333;
 }
 
-button {
+.container {
   width: 100%;
-  margin: 6px 0;
-  padding: 10px;
+}
+
+h2 {
+  text-align: center;
+  margin-bottom: 10px;
+  font-size: 18px;
+  color: #222;
+}
+
+.controls {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+button {
+  flex: 1;
+  padding: 8px;
   border: none;
   border-radius: 6px;
-  font-weight: bold;
+  font-size: 12px;
+  font-weight: 600;
   color: white;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -30,7 +39,6 @@ button {
 #start {
   background: #2196F3;
 }
-
 #start:hover {
   background: #1976D2;
 }
@@ -38,70 +46,64 @@ button {
 #stop {
   background: #f44336;
 }
-
 #stop:hover {
   background: #d32f2f;
 }
 
+#historyBtn {
+  background: #4CAF50;
+}
+#historyBtn:hover {
+  background: #388E3C;
+}
+
+#loadAnalytics {
+  background: #9C27B0;
+}
+#loadAnalytics:hover {
+  background: #7B1FA2;
+}
+
 #status {
-  margin-top: 8px;
   font-size: 13px;
-  color: #444;
+  margin-bottom: 8px;
+  text-align: center;
 }
 
-#resultBox {
-  margin-top: 12px;
-  padding: 10px;
-  border-radius: 8px;
-  background: #ffffff;
-  border: 1px solid #ddd;
-  max-height: 140px;
-  overflow-y: auto;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-}
-
-#resultBox h3 {
-  margin: 0 0 6px 0;
-  font-size: 14px;
-  color: #333;
-}
-
-#result {
-  font-size: 13px;
-  color: #555;
-  line-height: 1.4;
-}
-
-#resultBox::-webkit-scrollbar {
-  width: 5px;
-}
-
-#resultBox::-webkit-scrollbar-thumb {
-  background: #ccc;
-  border-radius: 5px;
+#loader {
+  text-align: center;
+  font-size: 12px;
+  margin-bottom: 8px;
+  color: #666;
 }
 
 .card {
-  background: #ffffff;
-  border-radius: 8px;
-  padding: 8px;
-  margin-bottom: 8px;
-  border: 1px solid #e0e0e0;
+  background: white;
+  border-radius: 10px;
+  padding: 10px;
+  margin-bottom: 10px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  border: 1px solid #e5e7eb;
 }
 
 .card h3 {
-  font-size: 13px;
-  margin-bottom: 5px;
+  font-size: 14px;
+  margin-bottom: 6px;
   color: #222;
+}
+
+.card h4 {
+  margin: 6px 0;
 }
 
 .card p {
   font-size: 12px;
-  margin: 0;
+  margin: 2px 0;
+  line-height: 1.4;
 }
 
 .card ul {
-  padding-left: 15px;
+  padding-left: 16px;
   margin: 0;
 }
 
@@ -110,22 +112,28 @@ button {
   margin-bottom: 3px;
 }
 
-#historyBtn {
-  background: #4CAF50;
+#result {
+  max-height: 250px;
+  overflow-y: auto;
 }
 
-#historyBtn:hover {
-  background: #388E3C;
+#result::-webkit-scrollbar {
+  width: 6px;
+}
+
+#result::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 5px;
 }
 
 .history-item {
   cursor: pointer;
-  transition: transform 0.2s ease;
+  transition: all 0.2s ease;
 }
 
 .history-item:hover {
+  background: #f3f4f6;
   transform: scale(1.02);
-  background: #f0f0f0;
 }
 
 .timeline {
@@ -151,15 +159,40 @@ button {
 }
 
 .time {
-  font-size: 12px;
-  color: #666;
+  font-size: 11px;
+  color: #777;
   font-weight: bold;
 }
 
 canvas {
-  max-width: 100%;
+  width: 100% !important;
+  height: 180px !important;
 }
 
-#appChart {
-  height: 200px !important;
+#summary {
+  font-size: 12px;
+}
+
+#summary p {
+  margin: 3px 0;
+}
+
+.good {
+  color: green;
+  font-weight: bold;
+}
+
+.average {
+  color: orange;
+  font-weight: bold;
+}
+
+.poor {
+  color: red;
+  font-weight: bold;
+}
+
+#result {
+  max-height: 300px;
+  overflow-y: auto;
 }
