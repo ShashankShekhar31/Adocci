@@ -2,9 +2,8 @@ require("dotenv").config();
 const express=require("express");
 const cors=require("cors");
 const fs = require("fs");
-const ffmpeg = require("fluent-ffmpeg");
+const { spawn } = require("child_process");
 const ffmpegPath = require("ffmpeg-static");
-const ffprobe = require("ffprobe-static");
 const OpenAI = require("openai");
 const analyticsRoute = require("./routes/analytics");
 
@@ -26,9 +25,6 @@ const app=express();
 app.use(cors());
 app.use(express.json({ limit: "100mb" }));
 app.use("/analytics", analyticsRoute);
-
-ffmpeg.setFfmpegPath(ffmpegPath);
-ffmpeg.setFfprobePath(ffprobe.path);
 
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY
@@ -64,67 +60,68 @@ function extractFrames(videoPath, res) {
     const folder = `frames_${Date.now()}`;
     fs.mkdirSync(folder, { recursive: true });
 
-    ffmpeg(videoPath)
-        .outputOptions([
-            '-vf', 'fps=1'
-        ])
-        .output(`${folder}/frame-%03d.png`)
-        .on('end', async () => {
-            console.log("Frames extracted");
+    const outputPattern = `${folder}/frame-%03d.png`;
 
-            let files = fs.readdirSync(folder);
+    const ffmpegProcess = spawn(ffmpegPath, [
+        "-i", videoPath,
+        "-vf", "fps=1",
+        outputPattern
+    ]);
 
-            files.sort();
-
-            files = await filterFrames(files, folder);
-
-            files = files.sort(() => Math.random() - 0.5);
-
-            const MAX_FRAMES = 8;
-            files = files.slice(0, MAX_FRAMES);
-
-            if (files.length === 0) {
-                console.log("No meaningful frames found");
-
-                return res.json({
-                    message: "No meaningful frames found",
-                    analysis: {
-                        task: [],
-                        apps: [],
-                        steps: [],
-                        issues: [],
-                        suggestions: []
-                    }
-                });
-            }
-
-            console.log("After filtering:", files.length);
-
-            console.log({
-            totalFrames: files.length,
-            selectedFrames: files.length
+    ffmpegProcess.on("close", async (code) => {
+        if (code !== 0) {
+            console.error("FFmpeg failed");
+            return res.status(500).json({
+                message: "Frame extraction failed"
             });
+        }
 
-            const images = await Promise.all(
-                files.map(async file => {
-                    const imgPath = `${folder}/${file}`;
-                    const img = await fs.promises.readFile(imgPath);
-                    return img.toString("base64");
-                })
-            );
+        console.log("Frames extracted");
 
-            console.log("Images generated:", images.length);
+        let files = fs.readdirSync(folder);
+        files.sort();
 
-            analyzeWithAI(images, res, videoPath, folder);
-        })
-        .on("error", (err) => {
+        files = await filterFrames(files, folder);
+        files = files.sort(() => Math.random() - 0.5);
+
+        const MAX_FRAMES = 8;
+        files = files.slice(0, MAX_FRAMES);
+
+        if (files.length === 0) {
+            return res.json({
+                message: "No meaningful frames found",
+                analysis: {
+                    task: [],
+                    apps: [],
+                    steps: [],
+                    issues: [],
+                    suggestions: []
+                }
+            });
+        }
+
+        console.log("After filtering:", files.length);
+
+        const images = await Promise.all(
+            files.map(async file => {
+                const imgPath = `${folder}/${file}`;
+                const img = await fs.promises.readFile(imgPath);
+                return img.toString("base64");
+            })
+        );
+
+        console.log("Images generated:", images.length);
+
+        analyzeWithAI(images, res, videoPath, folder);
+    });
+
+    ffmpegProcess.on("error", (err) => {
         console.error("FFmpeg Error:", err);
         res.status(500).json({
-            message: "Frame extraction failed",
+            message: "FFmpeg failed",
             error: err.message
         });
-    })
-    .run();
+    });
 }
 
 async function analyzeWithAI(images, res, videoPath, folder) {
