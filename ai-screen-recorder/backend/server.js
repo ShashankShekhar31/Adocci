@@ -62,6 +62,8 @@ function extractFrames(videoPath, res) {
 
     const outputPattern = `${folder}/frame-%03d.png`;
 
+    console.log("FFmpeg Path:", ffmpegPath);
+
     const ffmpegProcess = spawn(ffmpegPath, [
         "-i", videoPath,
         "-vf", "fps=1",
@@ -71,9 +73,13 @@ function extractFrames(videoPath, res) {
     ffmpegProcess.on("close", async (code) => {
         if (code !== 0) {
             console.error("FFmpeg failed");
-            return res.status(500).json({
-                message: "Frame extraction failed"
-            });
+
+            if (!res.headersSent) {
+                return res.status(500).json({
+                    message: "Frame extraction failed"
+                });
+            }
+            return;
         }
 
         console.log("Frames extracted");
@@ -117,10 +123,12 @@ function extractFrames(videoPath, res) {
 
     ffmpegProcess.on("error", (err) => {
         console.error("FFmpeg Error:", err);
-        res.status(500).json({
-            message: "FFmpeg failed",
-            error: err.message
-        });
+        if (!res.headersSent) {
+            res.status(500).json({
+                message: "FFmpeg failed",
+                error: err.message
+            });
+       }
     });
 }
 
