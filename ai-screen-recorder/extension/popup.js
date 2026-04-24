@@ -123,7 +123,9 @@ const parseSafe = (data) => {
 };
 
 startBtn.onclick = () => {
-    if (mediaRecorder && mediaRecorder.state === "recording") return;
+    if (mediaRecorder && mediaRecorder.state === "recording") {
+        mediaRecorder.stop();
+    }
     recordedChunks = [];
 
     startBtn.disabled = true;
@@ -251,7 +253,7 @@ function displayResult(data) {
     container.innerHTML = `
         <div class="card">
             <h3> Task</h3>
-            <p>${data.task || "N/A"}</p>
+            <p>${(data.task || []).join(", ")}</p>
         </div>
 
         <div class="card">
@@ -413,7 +415,7 @@ async function loadAnalytics() {
             <hr>
 
             <h4>Insights</h4>
-            <p>Best: #${data.bestSession?.id} (${data.bestSession?.score})</p>
+            <p>Best: ${data.bestSession ? `#${data.bestSession.id} (${data.bestSession.score})` : "N/A"}</p>
             <p>Worst: #${data.worstSession?.id} (${data.worstSession?.score})</p>
             <p>Trend: ${data.improvement}</p>
         </div>

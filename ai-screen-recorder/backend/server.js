@@ -3,7 +3,7 @@ const express=require("express");
 const cors=require("cors");
 const fs = require("fs");
 const { spawn } = require("child_process");
-const ffmpegPath = require("ffmpeg-static");
+const ffmpegPath = require("@ffmpeg-installer/ffmpeg").path;
 const OpenAI = require("openai");
 const analyticsRoute = require("./routes/analytics");
 
@@ -260,17 +260,17 @@ async function analyzeWithAI(images, res, videoPath, folder) {
 
         console.log("AI Results:", finalResults);
 
-        if (!res.headersSent) {
-            return res.json({
-                message: "Analysis complete",
-                analysis: merged
-            });
-        }
         try {
             await fs.promises.unlink(videoPath);
             await fs.promises.rm(folder, { recursive: true, force: true });
         } catch (cleanupErr) {
             console.error("Cleanup error:", cleanupErr);
+        }
+        if (!res.headersSent) {
+            return res.json({
+                message: "Analysis complete",
+                analysis: merged
+            });
         }
 
     } catch (err) {
