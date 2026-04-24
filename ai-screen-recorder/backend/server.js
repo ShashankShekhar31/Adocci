@@ -314,6 +314,27 @@ app.get("/history", async (req, res) => {
     }
 });
 
+app.get("/init-db", async (req, res) => {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS analyses (
+        id SERIAL PRIMARY KEY,
+        filename TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        task TEXT,
+        apps TEXT,
+        steps TEXT,
+        issues TEXT,
+        suggestions TEXT
+      );
+    `);
+
+    res.send("Table created");
+  } catch (err) {
+    res.status(500).send(err.message);
+  }
+});
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, ()=>{
     console.log(`Server running on http://localhost:${PORT}`);
