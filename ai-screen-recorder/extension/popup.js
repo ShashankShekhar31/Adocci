@@ -113,7 +113,17 @@ const startBtn = document.getElementById("start");
 const stopBtn = document.getElementById("stop");
 const status = document.getElementById("status");
 
+const parseSafe = (data) => {
+    if (!data) return [];
+    try {
+        return Array.isArray(data) ? data : JSON.parse(data);
+    } catch {
+        return [];
+    }
+};
+
 startBtn.onclick = () => {
+    if (mediaRecorder && mediaRecorder.state === "recording") return;
     recordedChunks = [];
 
     startBtn.disabled = true;
@@ -187,7 +197,7 @@ stopBtn.onclick = () => {
             
             document.getElementById("loader").style.display = "block";
             try {
-                const response = await fetch("http://localhost:5000/analyze", {
+                const response = await fetch("https://adocci.onrender.com/analyze", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json"
@@ -199,13 +209,15 @@ stopBtn.onclick = () => {
 
                 if (!response.ok) {
                     const errorText = await response.text();
-                    console.error("Server Error:", errorText);
+                    document.getElementById("loader").style.display = "none";
+                    status.innerText = "Status: Server Error";
+                    status.style.color = "red";
                     return;
                 }
 
                 status.innerText = "Status: Processing...";
                 status.style.color = "orange";
-                document.getElementById("result").innerText = "Analyzing screen...";
+                document.getElementById("result").innerText = "AI is analyzing your recording...";
 
                 const data = await response.json();
                 console.log("Backend response:", data);
@@ -213,7 +225,7 @@ stopBtn.onclick = () => {
                 document.getElementById("loader").style.display = "none";
 
                 
-                displayResult(data.analysis);
+                displayResult(data.analysis || {});
                 
                 startBtn.disabled = false;
                 stopBtn.disabled = true;
@@ -230,6 +242,7 @@ stopBtn.onclick = () => {
     };
 
     status.innerText = "Status: Processing... ";
+    stopBtn.disabled = true;
 };
 
 function displayResult(data) {
@@ -238,7 +251,7 @@ function displayResult(data) {
     container.innerHTML = `
         <div class="card">
             <h3> Task</h3>
-            <p>${data.task?.join(", ") || "N/A"}</p>
+            <p>${data.task || "N/A"}</p>
         </div>
 
         <div class="card">
@@ -261,6 +274,7 @@ function displayResult(data) {
             <ul>${(data.suggestions || []).map(s => `<li>${s}</li>`).join("")}</ul>
         </div>
     `;
+    container.scrollTop = 0;
 }
 
 function displayHistory(data) {
@@ -273,19 +287,30 @@ function displayHistory(data) {
         return;
     }
 
-    container.innerHTML = data.map(item => `
-    <div class="card history-item" onclick='showDetails(${item.id})'>
-        <h3> ${new Date(item.created_at).toLocaleString()}</h3>
-        <p><b>Task:</b> ${(item.task || []).join(", ")}</p>
-        <p><b>Apps:</b> ${(item.apps || []).join(", ")}</p>
-    </div>
-`).join("");
+    container.innerHTML = data.map(item => {
+        const apps = parseSafe(item.apps);
+        const task = item.task || "N/A";
+
+        return`
+        <div class="card history-item" onclick='showDetails(${item.id})'>
+            <h3> ${new Date(item.created_at).toLocaleString()}</h3>
+
+            <p><b>Task:</b> ${task}</p>
+            <p><b>Apps:</b> ${apps.join(", ")}</p>
+        </div>
+        `;
+    }).join("");
 }
 
 function showDetails(id) {
     const item = historyCache.find(i => i.id === id);
 
     if (!item) return;
+
+    const apps = parseSafe(item.apps);
+    const steps = parseSafe(item.steps);
+    const issues = parseSafe(item.issues);
+    const suggestions = parseSafe(item.suggestions);
 
     const container = document.getElementById("result");
 
@@ -294,33 +319,33 @@ function showDetails(id) {
 
         <div class="card">
             <h3> Task</h3>
-            <p>${(item.task || []).join(", ")}</p>
+            <p>${item.task || "N/A"}</p>
         </div>
 
         <div class="card">
             <h3> Apps</h3>
-            <ul>${(item.apps || []).map(a => `<li>${a}</li>`).join("")}</ul>
+            <ul>${apps.map(a => `<li>${a}</li>`).join("")}</ul>
         </div>
 
         <div class="card">
             <h3> Steps</h3>
-            <ul>${(item.steps || []).map(s => `<li>${s}</li>`).join("")}</ul>
+            <ul>${steps.map(s => `<li>${s}</li>`).join("")}</ul>
         </div>
 
         <div class="card">
             <h3> Issues</h3>
-            <ul>${(item.issues || []).map(i => `<li>${i}</li>`).join("")}</ul>
+            <ul>${issues.map(i => `<li>${i}</li>`).join("")}</ul>
         </div>
 
         <div class="card">
             <h3> Suggestions</h3>
-            <ul>${(item.suggestions || []).map(s => `<li>${s}</li>`).join("")}</ul>
+            <ul>${suggestions.map(s => `<li>${s}</li>`).join("")}</ul>
         </div>
 
         <div class="card">
             <h3> Timeline</h3>
             <div class="timeline">
-                ${(item.steps || []).map((step, index) => `
+                ${steps.map((step, index) => `
                     <div class="timeline-item">
                         <span class="time">Step ${index + 1}</span>
                         <p>${step}</p>
@@ -329,15 +354,6 @@ function showDetails(id) {
             </div>
         </div>
     `;
-
-    const steps = item.steps || [];
-
-    // const timelineHTML = steps.map((step, index) => `
-    //     <div class="timeline-item">
-    //         <span class="time">Step ${index + 1}</span>
-    //         <p>${step}</p>
-    //     </div>
-    // `).join("");
 }
 
 function loadHistory() {
@@ -356,7 +372,7 @@ document.getElementById("historyBtn").onclick = async () => {
     stopBtn.disabled = true;
 
     try {
-        const response = await fetch("http://localhost:5000/history");
+        const response = await fetch("https://adocci.onrender.com/history");
         const data = await response.json();
 
         console.log("History Data:", data);
@@ -383,7 +399,7 @@ async function loadAnalytics() {
     analyticsBtn.disabled = true;
 
     try {
-        const res = await fetch("http://localhost:5000/analytics");
+        const res = await fetch("https://adocci.onrender.com/analytics");
         const data = await res.json();
 
         summaryDiv.innerHTML = `
@@ -435,16 +451,23 @@ async function loadAnalytics() {
       return; 
     }
 
+    if (!data.totalSessions) {
+        summaryDiv.innerHTML = "<p>No data yet. Record something first.</p>";
+        analyticsBtn.disabled = false;
+        return;
+    }
+
     renderChart(data.topApps);
 
     renderTrendChart(data.productivityTrend);
 
     analyticsBtn.disabled = false;
 
-  } catch (err) {
-    summaryDiv.innerHTML = "<p style='color:red;'>Failed to load analytics</p>";
-    analyticsBtn.disabled = false;
-  }
+    } catch (err) {
+        summaryDiv.innerHTML = "<p style='color:red;'>Failed to load analytics</p>";
+        analyticsBtn.disabled = false;
+        document.getElementById("loader").style.display = "none";
+    }
 }
 
 function renderChart(topApps) {
