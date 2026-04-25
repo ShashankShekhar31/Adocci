@@ -156,6 +156,8 @@ async function analyzeWithAI(images, res, videoPath, folder) {
 
                                 You MUST return ONLY valid JSON.
 
+                                "You MUST identify at least 1 issue even if minor. Be critical."
+
                                 DO NOT include any explanation.
                                 DO NOT include markdown.
                                 DO NOT include text before or after JSON.
@@ -308,7 +310,7 @@ app.post("/analyze", async (req,res)=>{
 app.get("/history", async (req, res) => {
     try {
         const result = await pool.query(
-            "SELECT * FROM analyses ORDER BY created_at DESC"
+            "SELECT id, created_at, productivity_score FROM analyses ORDER BY created_at DESC LIMIT 10"
         );
 
         res.json(result.rows);
