@@ -340,20 +340,6 @@ app.get("/init-db", async (req, res) => {
   }
 });
 
-app.get("/fix-db", async (req, res) => {
-    try {
-        await pool.query(`
-            ALTER TABLE analyses 
-            ADD COLUMN IF NOT EXISTS productivity_score INT;
-        `);
-
-        res.send("DB Fixed");
-    } catch (err) {
-        console.error(err);
-        res.status(500).send(" Error: " + err.message);
-    }
-});
-
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, ()=>{
     console.log(`Server running on http://localhost:${PORT}`);
