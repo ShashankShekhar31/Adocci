@@ -244,11 +244,11 @@ async function analyzeWithAI(images, res, videoPath, folder) {
                  VALUES ($1, $2, $3, $4, $5, $6, $7)`,
                 [
                     videoPath,
-                    merged.task,
-                    merged.apps,
-                    merged.steps,
-                    merged.issues,
-                    merged.suggestions,
+                    JSON.stringify(merged.task),
+                    JSON.stringify(merged.apps),
+                    JSON.stringify(merged.steps),
+                    JSON.stringify(merged.issues),
+                    JSON.stringify(merged.suggestions),
                     finalScore
                 ]
             );

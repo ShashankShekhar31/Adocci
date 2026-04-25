@@ -10,10 +10,11 @@ async function createTable() {
         filename TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         task TEXT,
-        apps TEXT,
-        steps TEXT,
-        issues TEXT,
-        suggestions TEXT
+        apps JSON,
+        steps JSON,
+        issues JSON,
+        suggestions JSON,
+        productivity_score INT
       );
     `);
 

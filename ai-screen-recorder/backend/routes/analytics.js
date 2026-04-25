@@ -34,9 +34,9 @@ router.get("/", async (req, res) => {
     sessions.forEach(session => {
         const dateObj = new Date(session.created_at);
         const date = dateObj.toISOString().split("T")[0];
-        const apps = parseSafe(session.apps);
-        const steps = parseSafe(session.steps);
-        const issues = parseSafe(session.issues);
+        const apps = parseSafe(session.apps || "[]");
+        const steps = parseSafe(session.steps || "[]");
+        const issues = parseSafe(session.issues || "[]");
 
         const uniqueApps = [...new Set(apps)];
         uniqueApps.forEach(app => {
@@ -45,8 +45,7 @@ router.get("/", async (req, res) => {
 
         issueCount += issues.length;
 
-        let score = 100 - (issues.length * 10) + (steps.length * 5);
-        score = Math.max(0, Math.min(100, score));
+        const score = session.productivity_score || 0;
 
         totalScore += score;
 
@@ -122,9 +121,9 @@ router.get("/", async (req, res) => {
         productivityLevel: getCategory(Number(avgProductivity)),
         dailySessions: sortedDailySessions,
         productivityTrend,
-        bestSession,
-        worstSession,
-        improvement
+        bestSession: bestSession || null,
+        worstSession: worstSession || null,
+        improvement: improvement || "Stable"
     });
 
   } catch (err) {
