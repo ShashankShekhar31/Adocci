@@ -124,7 +124,8 @@ const parseSafe = (data) => {
 
 startBtn.onclick = () => {
     if (mediaRecorder && mediaRecorder.state === "recording") {
-        mediaRecorder.stop();
+        alert("Already recording!");
+        return;
     }
     recordedChunks = [];
 
@@ -277,6 +278,11 @@ function displayResult(data) {
         </div>
     `;
     container.scrollTop = 0;
+
+    if (!data || Object.keys(data).length === 0) {
+        container.innerHTML = "<p>No meaningful activity detected.</p>";
+        return;
+    }
 }
 
 function displayHistory(data) {

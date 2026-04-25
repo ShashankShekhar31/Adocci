@@ -135,4 +135,19 @@ router.get("/", async (req, res) => {
     }
 });
 
+router.get("/history", async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT id, created_at, productivity_score
+            FROM analyses
+            ORDER BY created_at DESC
+            LIMIT 10
+        `);
+
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 module.exports = router;

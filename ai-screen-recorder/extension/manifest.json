@@ -7,7 +7,7 @@
     "background": {
         "service_worker": "background.js"
     },
-    "host_permissions": ["http://localhost:5000/"],
+    "host_permissions": ["<all_urls>"],
     "action":{
         "default_popup": "popup.html",
         "default_title": "AI Analyzer"

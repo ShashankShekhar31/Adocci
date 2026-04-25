@@ -237,8 +237,15 @@ async function analyzeWithAI(images, res, videoPath, folder) {
         merged.issues = [...new Set(merged.issues)];
         merged.suggestions = [...new Set(merged.suggestions)];
 
-        const score = 100 - (merged.issues.length * 10) + (merged.steps.length * 5);
-        const finalScore = Math.max(0, Math.min(100, score));
+        let finalScore = 100;
+        if (merged.issues && merged.issues.length > 0) {
+            finalScore -= merged.issues.length * 15;
+        }
+
+        if (!merged.steps || merged.steps.length < 3) {
+            finalScore -= 10;
+        }
+        finalScore = Math.max(0, Math.min(100, finalScore));
 
         try {
             await pool.query(
