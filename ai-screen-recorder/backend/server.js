@@ -9,14 +9,6 @@ const analyticsRoute = require("./routes/analytics");
 
 const pool = require("./db");
 
-// await pool.query("SELECT NOW()", (err, res) => {
-//     if (err) {
-//         console.error("DB Error:", err);
-//     } else {
-//         console.log("DB Connected ");
-//     }
-// });
-
 pool.query("SELECT NOW()")
   .then(() => console.log("DB Connected "))
   .catch(err => console.error("DB Error:", err));
